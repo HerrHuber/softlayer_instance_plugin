@@ -10,6 +10,12 @@ import (
 	"github.com/docker/infrakit/pkg/spi"
 	"github.com/docker/infrakit/pkg/spi/instance"
 	"github.com/docker/infrakit/pkg/types"
+/*
+        "github.com/softlayer/softlayer-go/datatypes"
+        "github.com/softlayer/softlayer-go/services"
+        "github.com/softlayer/softlayer-go/session"
+        "github.com/softlayer/softlayer-go/sl"
+*/
 	"github.com/spf13/afero"
 	"math/rand"
 )
@@ -24,27 +30,52 @@ import (
 // Spec is just whatever that can be unmarshalled into a generic JSON map
 type Spec map[string]interface{}
 
+
+// not needed
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
+
 // fileInstance represents a single file instance on disk.
 type fileInstance struct {
 	instance.Description
+//type Description struct {
+//	ID        ID
+//	LogicalID *LogicalID
+//	Tags      map[string]string
+//}
 	Spec instance.Spec
+// Spec is a specification of an instance to be provisioned
+//type Spec struct {
+//	// Properties is the opaque instance plugin configuration.
+//	Properties *types.Any
+//	// Tags are metadata that describes an instance.
+//	Tags map[string]string
+//	// Init is the boot script to execute when the instance is created.
+//	Init string
+//	// LogicalID is the logical identifier assigned to this instance, which may be absent.
+//	LogicalID *LogicalID
+//	// Attachments are instructions for external entities that should be attached to the instance.
+//	Attachments []Attachment
+//}
 }
 
 type plugin struct {
+//	name or id
 	Dir string
-	fs  afero.Fs
+//	service
+	fs  afero.Fs // is an interface for working with Files
 }
+
 
 // NewFileInstancePlugin returns an instance plugin backed by disk files.
 func NewFileInstancePlugin(dir string) instance.Plugin {
 	log.Debugln("file instance plugin. dir=", dir)
 	return &plugin{
 		Dir: dir,
-		fs:  afero.NewOsFs(),
+		fs:  afero.NewOsFs(), // returns a pointer to a class struct
+				// is a function or a *struct returned ??
 	}
 }
 
@@ -60,7 +91,25 @@ func (p *plugin) VendorInfo() *spi.VendorInfo {
 }
 
 // ExampleProperties returns the properties / config of this plugin
-func (p *plugin) ExampleProperties() *types.Any {
+//				where is this methode used???
+func (p *plugin) ExampleProperties(/*	spec instance.Spec*/) *types.Any {
+
+/*	if spec.Properties == nil {
+		return nil, errors.New("Properties must be set")
+	}*/
+
+// Instance input, data that the instance uses to be prvisioned (request data)
+/*        vGuestTemplate := datatypes.Virtual_Guest{
+                Hostname:                     sl.String("mphauto"),
+                Domain:                       sl.String("mphautobusiness.com"),
+                MaxMemory:                    sl.Int(1024),
+                StartCpus:                    sl.Int(1),
+                Datacenter:                   &datatypes.Location{Name: sl.String("fra02")},
+                OperatingSystemReferenceCode: sl.String("UBUNTU_LATEST"),
+                LocalDiskFlag:                sl.Bool(true),
+                HourlyBillingFlag:            sl.Bool(true),
+        }
+*/
 	any, err := types.AnyValue(Spec{
 		"exampleString": "a_string",
 		"exampleBool":   true,
@@ -81,12 +130,46 @@ func (p *plugin) Validate(req *types.Any) error {
 		return err
 	}
 
+// is json(Spec) correct
+//	spec.hostname == nill {
+//		return someerror
+//	}
+
 	log.Debugln("Validated:", spec)
 	return nil
 }
 
 // Provision creates a new instance based on the spec.
 func (p *plugin) Provision(spec instance.Spec) (*instance.ID, error) {
+
+/*
+	convert spec => vGuestTemplate
+	service := p.service
+	
+        vGuest, err := service.Mask("id;domain").CreateObject(&vGuestTemplate)
+        if err != nil {
+                fmt.Printf("%s\n", err)
+                return
+        } else {
+                fmt.Printf("\nNew Virtual Guest created with ID %d\n", *vGuest.Id)
+                fmt.Printf("Domain: %s\n", *vGuest.Domain)
+        }
+
+        // Wait for transactions to finish
+        fmt.Printf("Waiting for transactions to complete before destroying.")
+        service = service.Id(*vGuest.Id)
+
+        // Delay to allow transactions to be registered
+        time.Sleep(10 * time.Second)
+// what does service.GetActiveTransactions() do?
+        for transactions, _ := service.GetActiveTransactions(); len(transactions) > 0; {
+                fmt.Print(".")
+                time.Sleep(10 * time.Second)
+                transactions, err = service.GetActiveTransactions()
+        }
+*/
+
+
 	// simply writes a file
 	// use timestamp as instance id
 	id := instance.ID(fmt.Sprintf("instance-%d", rand.Int63()))
@@ -135,6 +218,21 @@ func (p *plugin) Label(instance instance.ID, labels map[string]string) error {
 
 // Destroy terminates an existing instance.
 func (p *plugin) Destroy(instance instance.ID) error {
+/*
+        fmt.Println("Deleting virtual guest")
+
+	service := p.service
+
+        success, err := service.DeleteObject()
+        if err != nil {
+                fmt.Printf("Error deleting virtual guest: %s", err)
+        } else if success == false {
+                fmt.Printf("Error deleting virtual guest")
+        } else {
+                fmt.Printf("Virtual Guest deleted successfully")
+        }
+*/
+
 	fp := filepath.Join(p.Dir, string(instance))
 	log.Debugln("destroy", fp)
 	return p.fs.Remove(fp)
