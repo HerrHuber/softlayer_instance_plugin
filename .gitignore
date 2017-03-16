@@ -4,6 +4,7 @@
 *~
 .idea/
 *.iml
+*.swap
 coverage.txt
 
 # Binaries from builds
