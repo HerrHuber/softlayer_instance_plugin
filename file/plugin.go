@@ -1,23 +1,22 @@
 package main
 
 import (
-	"encoding/json"
+//	"encoding/json"
 	"fmt"
-	"path/filepath"
+	"strconv"
+//	"path/filepath"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/infrakit/pkg/spi"
 	"github.com/docker/infrakit/pkg/spi/instance"
 	"github.com/docker/infrakit/pkg/types"
-/*
         "github.com/softlayer/softlayer-go/datatypes"
         "github.com/softlayer/softlayer-go/services"
         "github.com/softlayer/softlayer-go/session"
         "github.com/softlayer/softlayer-go/sl"
-*/
-	"github.com/spf13/afero"
-	"math/rand"
+//	"github.com/spf13/afero"
+//	"math/rand"
 )
 
 // This example uses local files as a representation of an instance.  When we
@@ -30,14 +29,16 @@ import (
 // Spec is just whatever that can be unmarshalled into a generic JSON map
 type Spec map[string]interface{}
 
-
-// not needed
+/*
 func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
-}
+//	rand.Seed(time.Now().UTC().UnixNano())
 
+// sess init in NewFileInstancePlugin() or here?
+}
+*/
 
 // fileInstance represents a single file instance on disk.
+// change name to SLInstance or softlayerInstance
 type fileInstance struct {
 	instance.Description
 //type Description struct {
@@ -61,14 +62,18 @@ type fileInstance struct {
 //}
 }
 
+
+// change name to softlayerPlugin
 type plugin struct {
-//	name or id
-	Dir string
+//	name(evtually name of SL acc) or id
+	Name string
+//	Dir string
 //	service
-	fs  afero.Fs // is an interface for working with Files
+	sess *session.Session
+//	fs  afero.Fs // is an interface for working with Files
 }
 
-
+/*
 // NewFileInstancePlugin returns an instance plugin backed by disk files.
 func NewFileInstancePlugin(dir string) instance.Plugin {
 	log.Debugln("file instance plugin. dir=", dir)
@@ -78,12 +83,28 @@ func NewFileInstancePlugin(dir string) instance.Plugin {
 				// is a function or a *struct returned ??
 	}
 }
+*/
+
+// change name to NewSLInstancePlugin or NewSoftlayerInstancePlugin
+func NewFileInstancePlugin(name string) instance.Plugin {
+	log.Debugln("softlayer instance plugin of name =", name)
+	sess := session.New() // default endpoint https://api.softlayer.com/rest/v3/...json
+	sess.Debug = true
+
+	return &plugin{
+		Name: name,
+		sess: sess,
+				// a struct is returned ??
+	}
+}
+
 
 // Info returns a vendor specific name and version
+// what is this for??
 func (p *plugin) VendorInfo() *spi.VendorInfo {
 	return &spi.VendorInfo{
 		InterfaceSpec: spi.InterfaceSpec{
-			Name:    "infrakit-instance-file",
+			Name:    "infrakit-instance-sl",
 			Version: "0.3.0",
 		},
 		URL: "https://github.com/docker/infrakit",
@@ -144,32 +165,47 @@ func (p *plugin) Provision(spec instance.Spec) (*instance.ID, error) {
 
 /*
 	convert spec => vGuestTemplate
-	service := p.service
-	
-        vGuest, err := service.Mask("id;domain").CreateObject(&vGuestTemplate)
-        if err != nil {
-                fmt.Printf("%s\n", err)
-                return
-        } else {
-                fmt.Printf("\nNew Virtual Guest created with ID %d\n", *vGuest.Id)
-                fmt.Printf("Domain: %s\n", *vGuest.Domain)
-        }
 
-        // Wait for transactions to finish
-        fmt.Printf("Waiting for transactions to complete before destroying.")
-        service = service.Id(*vGuest.Id)
+// hardcoded version
+*/
 
-        // Delay to allow transactions to be registered
-        time.Sleep(10 * time.Second)
-// what does service.GetActiveTransactions() do?
-        for transactions, _ := service.GetActiveTransactions(); len(transactions) > 0; {
-                fmt.Print(".")
-                time.Sleep(10 * time.Second)
-                transactions, err = service.GetActiveTransactions()
+/*
+        vGuestTemplate := datatypes.Virtual_Guest{
+                Hostname:                     sl.String(spec.Properties.Hostname),
+                Domain:                       sl.String(spec.Properties.Domain),
+                MaxMemory:                    sl.Int(spec.Properties.MaxMemory),
+                StartCpus:                    sl.Int(spec.Properties.StartCpus),
+                Datacenter:                   &datatypes.Location{Name: sl.String(spec.Properties.Datacenter)},
+                OperatingSystemReferenceCode: sl.String(spec.Properties.OperatingSystemReferenceCode),
+                LocalDiskFlag:                sl.Bool(spec.Properties.LocalDiskFlag),
+                HourlyBillingFlag:            sl.Bool(spec.Properties.HourlyBillingFlag),
         }
 */
 
+        vGuestTemplate := datatypes.Virtual_Guest{
+                Hostname:                     sl.String("mphauto"),
+                Domain:                       sl.String("mphautobusiness.com"),
+                MaxMemory:                    sl.Int(1024),
+                StartCpus:                    sl.Int(1),
+                Datacenter:                   &datatypes.Location{Name: sl.String("fra02")},
+                OperatingSystemReferenceCode: sl.String("UBUNTU_LATEST"),
+                LocalDiskFlag:                sl.Bool(true),
+                HourlyBillingFlag:            sl.Bool(true),
+        }
 
+
+	service := services.GetVirtualGuestService(p.sess)
+        vGuest, err := service.Mask("id;domain").CreateObject(&vGuestTemplate)
+	id := instance.ID(string(*vGuest.Id))
+        if err != nil {
+                fmt.Printf("%s\n", err)
+                return nil, err
+        } else {
+                fmt.Printf("\nNew Virtual Guest created with ID %d\n", id)
+                fmt.Printf("Domain: %s\n", *vGuest.Domain)
+        }
+
+/*
 	// simply writes a file
 	// use timestamp as instance id
 	id := instance.ID(fmt.Sprintf("instance-%d", rand.Int63()))
@@ -186,10 +222,15 @@ func (p *plugin) Provision(spec instance.Spec) (*instance.ID, error) {
 		return nil, err
 	}
 	return &id, afero.WriteFile(p.fs, filepath.Join(p.Dir, string(id)), buff, 0644)
+*/
+
+	log.Debugln("provisio", id, "data=empty")
+	return &id, nil
 }
 
 // Label labels the instance
 func (p *plugin) Label(instance instance.ID, labels map[string]string) error {
+/*
 	fp := filepath.Join(p.Dir, string(instance))
 	buff, err := afero.ReadFile(p.fs, fp)
 	if err != nil {
@@ -214,14 +255,36 @@ func (p *plugin) Label(instance instance.ID, labels map[string]string) error {
 		return err
 	}
 	return afero.WriteFile(p.fs, fp, buff, 0644)
+*/
+	return nil
 }
 
 // Destroy terminates an existing instance.
 func (p *plugin) Destroy(instance instance.ID) error {
-/*
         fmt.Println("Deleting virtual guest")
 
-	service := p.service
+	service := services.GetVirtualGuestService(p.sess)
+
+        // Wait for transactions to finish
+        fmt.Printf("Waiting for transactions to complete before destroying.")
+	id, err := strconv.Atoi(string(instance))
+	if err != nil {
+		log.Debug("Atoi conversion error", err)
+		return err
+	}
+        service = service.Id(id)
+
+        // Delay to allow transactions to be registered
+        time.Sleep(10 * time.Second)
+// what does service.GetActiveTransactions() do?
+        for transactions, _ := service.GetActiveTransactions(); len(transactions) > 0; {
+                fmt.Print(".")
+                time.Sleep(10 * time.Second)
+                transactions, err = service.GetActiveTransactions()
+        }
+
+
+//	service := services.GetVirtualGuestService(p.sess)
 
         success, err := service.DeleteObject()
         if err != nil {
@@ -231,16 +294,21 @@ func (p *plugin) Destroy(instance instance.ID) error {
         } else {
                 fmt.Printf("Virtual Guest deleted successfully")
         }
-*/
 
+	log.Debugln("destroy", instance)
+	return err
+
+/*
 	fp := filepath.Join(p.Dir, string(instance))
 	log.Debugln("destroy", fp)
 	return p.fs.Remove(fp)
+*/
 }
 
 // DescribeInstances returns descriptions of all instances matching all of the provided tags.
 // TODO - need to define the fitlering of tags => AND or OR of matches?
 func (p *plugin) DescribeInstances(tags map[string]string) ([]instance.Description, error) {
+/*
 	log.Debugln("describe-instances", tags)
 	entries, err := afero.ReadDir(p.fs, p.Dir)
 	if err != nil {
@@ -277,4 +345,6 @@ scan:
 
 	}
 	return result, nil
+*/
+	return nil, nil
 }
