@@ -1,0 +1,18 @@
+{
+  "Properties": {
+    "version": "v0.0.1",
+    "Hostname": "testhostname",
+    "Domain": "example.com",
+    "MaxMemory": "1024",
+    "StartCpus": "1",
+    "Datacenter": "fra02",
+    "OperatingSystemReferenceCode": "UBUNTU_LATEST",
+    "LocalDiskFlag": "true",
+    "HourlyBillingFlag": "true"
+  },
+  "Tags": {
+    "group": "test2",
+    "instanceType": "small"
+  },
+  "Init": "#!/bin/sh\napt-get install -y wget"
+}
