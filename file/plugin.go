@@ -27,7 +27,7 @@ import (
 // tags.
 
 // Spec is just whatever that can be unmarshalled into a generic JSON map
-type Spec map[string]interface{}
+type Spec map[string]map[string]string
 
 /*
 func init() {
@@ -142,6 +142,11 @@ func (p *plugin) ExampleProperties(/*	spec instance.Spec*/) *types.Any {
 	return any
 }
 
+type SpecPropertiesFormat struct {
+	Type  string                 `json:"type"`
+	Value map[string]interface{} `json:"value"`
+}
+
 // Validate performs local validation on a provision request.
 func (p *plugin) Validate(req *types.Any) error {
 	log.Debugln("validate", req.String())
@@ -155,6 +160,40 @@ func (p *plugin) Validate(req *types.Any) error {
 //	spec.hostname == nill {
 //		return someerror
 //	}
+/*
+ 24         m := map[string]Book{"foo": Book{Title: "Bar"}, "quux": Book{Title: "Baz"}}
+ 25         v := reflect.ValueOf(m)
+ 26         if v.Kind() == reflect.Map {
+ 27                 for _, key := range v.MapKeys() {
+ 28                         strct := v.MapIndex(key)
+ 29                         fmt.Println(key.Interface(), strct.Interface())
+ 30                 }
+ 31         }
+*/
+/*
+	var properties interface{} = spec["Properties"]
+	m := map[string]string{}
+	switch p := properties.(type) {
+	case map[string]interface{}:
+		for k, v := range p {
+			log.Debugln(k, ": ", v)
+			m[k] = v
+		}
+	default:
+		log.Debugf("Failed to get type %T", p)
+	}
+	mm := map[string]string{}
+	switch pp := m.(type) {
+	case map[string]string{}:
+		for k, v := range m {
+			log.Debugln(k, ":: ", v)
+			mm[k] = v
+		}
+	default:
+		log.Debugf("2failed Type=%T\n", pp)
+	}
+*/
+
 
 	log.Debugln("Validated:", spec)
 	return nil
