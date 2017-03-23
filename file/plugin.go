@@ -27,7 +27,7 @@ import (
 // tags.
 
 // Spec is just whatever that can be unmarshalled into a generic JSON map
-type Spec map[string]map[string]string
+type Spec map[string]interface{}
 
 /*
 func init() {
@@ -156,6 +156,10 @@ func (p *plugin) Validate(req *types.Any) error {
 		return err
 	}
 
+	if len(spec) == 0 {
+		return fmt.Errorf("no-value:%s", req.String())
+	}
+
 // is json(Spec) correct
 //	spec.hostname == nill {
 //		return someerror
@@ -208,19 +212,30 @@ func (p *plugin) Provision(spec instance.Spec) (*instance.ID, error) {
 // hardcoded version
 */
 
-/*
-        vGuestTemplate := datatypes.Virtual_Guest{
-                Hostname:                     sl.String(spec.Properties.Hostname),
-                Domain:                       sl.String(spec.Properties.Domain),
-                MaxMemory:                    sl.Int(spec.Properties.MaxMemory),
-                StartCpus:                    sl.Int(spec.Properties.StartCpus),
-                Datacenter:                   &datatypes.Location{Name: sl.String(spec.Properties.Datacenter)},
-                OperatingSystemReferenceCode: sl.String(spec.Properties.OperatingSystemReferenceCode),
-                LocalDiskFlag:                sl.Bool(spec.Properties.LocalDiskFlag),
-                HourlyBillingFlag:            sl.Bool(spec.Properties.HourlyBillingFlag),
-        }
-*/
+	if spec.Properties == nil {
+		return nil, fmt.Errorf("no-properties")
+	}
 
+	properties := Spec{}
+	err := spec.Properties.Decode(&properties)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugln("Hostname: ", properties["Hostname"])
+
+        vGuestTemplate := datatypes.Virtual_Guest{
+                Hostname:                     sl.String(properties["Hostname"].(string)),
+                Domain:                       sl.String(properties["Domain"].(string)),
+                MaxMemory:                    sl.Int(int(properties["MaxMemory"].(float64))),
+                StartCpus:                    sl.Int(int(properties["StartCpus"].(float64))),
+                Datacenter:                   &datatypes.Location{Name: sl.String(properties["Datacenter"].(string))},
+                OperatingSystemReferenceCode: sl.String(properties["OperatingSystemReferenceCode"].(string)),
+                LocalDiskFlag:                sl.Bool(properties["LocalDiskFlag"].(bool)),
+                HourlyBillingFlag:            sl.Bool(properties["HourlyBillingFlag"].(bool)),
+        }
+
+/*
         vGuestTemplate := datatypes.Virtual_Guest{
                 Hostname:                     sl.String("mphauto"),
                 Domain:                       sl.String("mphautobusiness.com"),
@@ -231,6 +246,7 @@ func (p *plugin) Provision(spec instance.Spec) (*instance.ID, error) {
                 LocalDiskFlag:                sl.Bool(true),
                 HourlyBillingFlag:            sl.Bool(true),
         }
+*/
 
 
 	service := services.GetVirtualGuestService(p.sess)
