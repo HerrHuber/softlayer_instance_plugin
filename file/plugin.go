@@ -222,8 +222,6 @@ func (p *plugin) Provision(spec instance.Spec) (*instance.ID, error) {
 		return nil, err
 	}
 
-	log.Debugln("Hostname: ", properties["Hostname"])
-
         vGuestTemplate := datatypes.Virtual_Guest{
                 Hostname:                     sl.String(properties["Hostname"].(string)),
                 Domain:                       sl.String(properties["Domain"].(string)),
@@ -251,12 +249,11 @@ func (p *plugin) Provision(spec instance.Spec) (*instance.ID, error) {
 
 	service := services.GetVirtualGuestService(p.sess)
         vGuest, err := service.Mask("id;domain").CreateObject(&vGuestTemplate)
-	id := instance.ID(string(*vGuest.Id))
         if err != nil {
                 fmt.Printf("%s\n", err)
                 return nil, err
         } else {
-                fmt.Printf("\nNew Virtual Guest created with ID %d\n", id)
+                fmt.Printf("\nNew Virtual Guest created with ID %d\n", *vGuest.Id)
                 fmt.Printf("Domain: %s\n", *vGuest.Domain)
         }
 
@@ -279,8 +276,35 @@ func (p *plugin) Provision(spec instance.Spec) (*instance.ID, error) {
 	return &id, afero.WriteFile(p.fs, filepath.Join(p.Dir, string(id)), buff, 0644)
 */
 
-	log.Debugln("provisio", id, "data=empty")
-	return &id, nil
+	log.Debugln("provisioned id=%s", *vGuest.Id)
+
+	init := spec.Init
+	if init != "" {
+
+	        fmt.Printf("Waiting for transactions to complete before executing script.")
+	        service = service.Id(*vGuest.Id)
+
+	        // Delay to allow transactions to be registered
+	        time.Sleep(10 * time.Second)
+	// what does service.GetActiveTransactions() do?
+	        for transactions, _ := service.GetActiveTransactions(); len(transactions) > 0; {
+	                fmt.Print(".")
+	                time.Sleep(10 * time.Second)
+	                transactions, err = service.GetActiveTransactions()
+	        }
+
+	        // Execute the remote script
+		for err := service.Id(*vGuest.Id).ExecuteRemoteScript(sl.String(init)); err != nil; {
+		        fmt.Println("Error executing remote script on VM:", err)
+			time.Sleep(10 * time.Second)
+			err = service.Id(*vGuest.Id).ExecuteRemoteScript(sl.String(init))
+		}
+		fmt.Println("Remote script sent for execution on VM")
+	}
+
+
+	idid := (instance.ID)(strconv.Itoa(*vGuest.Id))
+	return &idid, nil
 }
 
 // Label labels the instance
@@ -364,6 +388,10 @@ func (p *plugin) Destroy(instance instance.ID) error {
 // TODO - need to define the fitlering of tags => AND or OR of matches?
 func (p *plugin) DescribeInstances(tags map[string]string) ([]instance.Description, error) {
 /*
+
+
+	get all virtual guest ids like in go sl api examples
+
 	log.Debugln("describe-instances", tags)
 	entries, err := afero.ReadDir(p.fs, p.Dir)
 	if err != nil {
