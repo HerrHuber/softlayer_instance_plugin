@@ -387,12 +387,33 @@ func (p *plugin) Destroy(instance instance.ID) error {
 // DescribeInstances returns descriptions of all instances matching all of the provided tags.
 // TODO - need to define the fitlering of tags => AND or OR of matches?
 func (p *plugin) DescribeInstances(tags map[string]string) ([]instance.Description, error) {
-/*
-
-
-	get all virtual guest ids like in go sl api examples
-
 	log.Debugln("describe-instances", tags)
+
+//	get all virtual guest ids like in go sl api examples
+        // Get the Account service
+	service := services.GetAccountService(p.sess)
+
+        // List VMs
+        vms, err := service.Mask("id;hostname;domain").Limit(100).GetVirtualGuests()
+        if err != nil {
+                fmt.Printf("Error retrieving Virtual Guests from Account: %s\n", err)
+                return nil, err
+        } else {
+                fmt.Println("VMs under Account:")
+        }
+
+	result := []instance.Description{}
+        for _, vm := range vms {
+                fmt.Printf("\t[%d]%s.%s\n", *vm.Id, *vm.Hostname, *vm.Domain)
+		inst := fileInstance{}
+		inst.Description.ID = (instance.ID)(strconv.Itoa(*vm.Id))
+		lid := (instance.LogicalID)(*vm.Hostname)
+		inst.Description.LogicalID = &lid
+		inst.Description.Tags = tags
+		result = append(result, inst.Description)
+        }
+
+/*
 	entries, err := afero.ReadDir(p.fs, p.Dir)
 	if err != nil {
 		return nil, err
@@ -427,7 +448,6 @@ scan:
 		}
 
 	}
-	return result, nil
 */
-	return nil, nil
+	return result, nil
 }
