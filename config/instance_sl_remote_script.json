@@ -1,0 +1,18 @@
+{
+  "Properties": {
+    "version": "v0.0.1",
+    "Hostname": "mphto",
+    "Domain": "mphtobusiness.com",
+    "MaxMemory": 1024,
+    "StartCpus": 1,
+    "Datacenter": "fra02",
+    "OperatingSystemReferenceCode": "UBUNTU_LATEST",
+    "LocalDiskFlag": true,
+    "HourlyBillingFlag": true
+  },
+  "Tags": {
+    "group": "test22",
+    "instanceType": "smallsmall"
+  },
+  "Init": "https://raw.githubusercontent.com/HerrHuber/softlayer_instance_plugin/master/hello_world.sh"
+}
