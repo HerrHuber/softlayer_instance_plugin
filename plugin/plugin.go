@@ -19,12 +19,6 @@ import (
 //	"math/rand"
 )
 
-// This example uses local files as a representation of an instance.  When we
-// create an instance, we write a file in a directory.  The content of the file is simply
-// the message in the provision spec, so we can verify correctness of the content easily.
-// When we destroy an instance, we remove the file.
-// DescribeInstances simply would list the files with the matching
-// tags.
 
 // Spec is just whatever that can be unmarshalled into a generic JSON map
 type Spec map[string]interface{}
@@ -37,7 +31,6 @@ func init() {
 }
 */
 
-// fileInstance represents a single file instance on disk.
 // change name to SLInstance or softlayerInstance
 type fileInstance struct {
 	instance.Description
@@ -107,7 +100,7 @@ func (p *plugin) VendorInfo() *spi.VendorInfo {
 			Name:    "infrakit-instance-sl",
 			Version: "0.3.0",
 		},
-		URL: "https://github.com/docker/infrakit",
+		URL: "https://github.com/HerrHuber/softlayer_instance_plugin",
 	}
 }
 
@@ -209,7 +202,6 @@ func (p *plugin) Provision(spec instance.Spec) (*instance.ID, error) {
 /*
 	convert spec => vGuestTemplate
 
-// hardcoded version
 */
 
 	if spec.Properties == nil {
@@ -234,6 +226,7 @@ func (p *plugin) Provision(spec instance.Spec) (*instance.ID, error) {
         }
 
 /*
+// hardcoded version
         vGuestTemplate := datatypes.Virtual_Guest{
                 Hostname:                     sl.String("mphauto"),
                 Domain:                       sl.String("mphautobusiness.com"),
@@ -385,7 +378,7 @@ func (p *plugin) Destroy(instance instance.ID) error {
 }
 
 // DescribeInstances returns descriptions of all instances matching all of the provided tags.
-// TODO - need to define the fitlering of tags => AND or OR of matches?
+// TODO - need to define the filtering of tags => AND or OR of matches?
 func (p *plugin) DescribeInstances(tags map[string]string) ([]instance.Description, error) {
 	log.Debugln("describe-instances", tags)
 

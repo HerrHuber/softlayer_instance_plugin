@@ -14,5 +14,5 @@
     "group": "test22",
     "instanceType": "smallsmall"
   },
-  "Init": "https://raw.githubusercontent.com/HerrHuber/softlayer_instance_plugin/master/hello_world.sh"
+  "Init": "https://raw.githubusercontent.com/HerrHuber/softlayer_instance_plugin/master/scripts/install_docker.sh"
 }
