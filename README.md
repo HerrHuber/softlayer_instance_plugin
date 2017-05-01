@@ -5,7 +5,7 @@ softlayer_instance_plugin is an instance plugin for infrakit (see: github.com/do
 The finished plugin should manage Softlayer instances (virtual servers)
 and uses the Go Client for the Softlayer API (see: https://github.com/softlayer/softlayer-go)
 
-Note: The plugin is not even close to being usable!
+Note: The plugin is not finished yet!
 
 # Prerequisites
 
@@ -19,7 +19,7 @@ SL_API_KEY
 
 # Build
 
-go build -o build/instance-sl file/
+go build -o ./build/instance-sl ./plugin/
 
 # Execute
 
@@ -39,4 +39,20 @@ infrakit plugin ls
 
 
 ./PATH/TO/INFRAKIT_DIR/build/infrakit group destroy cattle
+
+
+# Example
+
+Start the plugin
+./go/src/github.com/HerrHuber/softlayer_instance_plugin/build/instance-sl --log 5
+
+Create a new virtual server instance
+./go/src/github.com/docker/infrakit/build/infrakit instance --name instance-sl provision go/src/github.com/HerrHuber/softlayer_instance_plugin/config/instance_sl_remote_script.json --log 5
+
+Describe (get Id, LogicalID) all virtual server instances
+./go/src/github.com/docker/infrakit/build/infrakit instance describe --name instance-sl
+
+Destroy the virtual server instance with id xxxxxxxxx
+./go/src/github.com/docker/infrakit/build/infrakit instance --name instance-sl destroy xxxxxxxxx --log 5
+
 
